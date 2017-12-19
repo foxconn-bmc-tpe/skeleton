@@ -246,6 +246,8 @@ static void add_system_event_thermal_shutdown(sd_bus *bus, enum FAN_ALGO_TYPE fa
 	else {
 		g_trigger_system_event |= (1<<((int)fan_algo_type));
 	}
+	sd_bus_error_free(&bus_error);
+	response = sd_bus_message_unref(response);
 }
 
 static void system_shut_down(sd_bus *bus, enum FAN_ALGO_TYPE fan_algo_type) {
@@ -1100,12 +1102,15 @@ static int get_dbus_hwmon_mapping_parameters(sd_bus *bus , char *request_param ,
 		rc = sd_bus_message_read(response, "s", &response_param);
 		if (rc < 0 ) {
 			fprintf(stderr, "Failed to parse response message:[%s]\n", strerror(-rc));
-			return rc;
+			goto error_hwmon_mapping;
 		}
 		strncpy(response_data, response_param, response_len);
-		if (strcmp(response_data, request_param) ==0)
-			return -1;
+		if (strcmp(response_data, request_param) ==0) {
+			rc = -1;
+		    goto error_hwmon_mapping;
+		}
 	}
+error_hwmon_mapping:
 	sd_bus_error_free(&bus_error);
 	response = sd_bus_message_unref(response);
 	return rc;
