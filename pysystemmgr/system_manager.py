@@ -158,14 +158,17 @@ class SystemManager(DbusProperties, DbusObjectManager):
     @dbus.service.method(DBUS_NAME,
         in_signature='s', out_signature='s')
     def getHwmonMappingParams(self, hwmon_dev):
-        if hwmon_dev.find("occ-hwmon")>=0:
-            hwmon_root_dev_path="/sys/bus/platform/drivers/"
-            hwmon_root_dev_path+=hwmon_dev
-            hwmon_root_dev_path+="/hwmon"
-            for i in range(20):
-                hwmon_dev_path = hwmon_root_dev_path + "/hwmon%d"%i
-                if os.path.isdir(hwmon_dev_path):
-                    return "xyz.openbmc_project.Hwmon.hwmon%d"%i
+        BASE_HWMON_PATH = "/sys/class/hwmon"
+        try:
+            if hwmon_dev.find("/") < 0:
+                return hwmon_dev
+            for subdirname in os.listdir(BASE_HWMON_PATH):
+                of_node_path = BASE_HWMON_PATH + "/" + subdirname + "/of_node"
+                real_path = os.path.realpath(of_node_path)
+                if real_path.find(hwmon_dev) >=0:
+                    return "xyz.openbmc_project.Hwmon.%s"%subdirname
+        except:
+            pass
         return hwmon_dev
 
     @dbus.service.method(DBUS_NAME,
@@ -193,7 +196,7 @@ class SystemManager(DbusProperties, DbusObjectManager):
                 if key_prefix not in System.FAN_ALGORITHM_CONFIG[key_name]:
                     return ""
                 for i in range(len(System.FAN_ALGORITHM_CONFIG[key_name][key_prefix])):
-                    s_params+=System.FAN_ALGORITHM_CONFIG[key_name][key_prefix][i] + ";"
+                    s_params+=self.getHwmonMappingParams(System.FAN_ALGORITHM_CONFIG[key_name][key_prefix][i]) + ";"
                 return s_params
 
             if key not in System.FAN_ALGORITHM_CONFIG:
@@ -218,7 +221,7 @@ class SystemManager(DbusProperties, DbusObjectManager):
                         start_idx+=1
                     i+=3
                     continue
-                s_params+=System.FAN_ALGORITHM_CONFIG[key][i] + ";"
+                s_params+=self.getHwmonMappingParams(System.FAN_ALGORITHM_CONFIG[key][i]) + ";"
                 i+=1
         except:
             return ""

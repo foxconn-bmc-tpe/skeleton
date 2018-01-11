@@ -428,16 +428,17 @@ FAN_ALGORITHM_CONFIG = {
     {
         'CHASSIS_POWER_STATE': ['org.openbmc.control.Chassis', 'org.openbmc.control.Chassis'],
         #fan0~2 and fan0L/H~fan2L/H  mapping xyz.openbmc_project.Hwmon.hwmon4 Bus 
-        'FAN_INPUT_OBJ' : ['xyz.openbmc_project.Hwmon.hwmon4', 'xyz.openbmc_project.Sensor.Value'],
-        'FAN_OUTPUT_OBJ' : ['xyz.openbmc_project.Hwmon.hwmon4', 'xyz.openbmc_project.Sensor.Value'],
+        'FAN_INPUT_OBJ' : ['i2c@1e78a000/i2c-bus@380/nct7904@2e', 'xyz.openbmc_project.Sensor.Value'],
+        'FAN_OUTPUT_OBJ' : ['i2c@1e78a000/i2c-bus@380/nct7904@2e', 'xyz.openbmc_project.Sensor.Value'],
         #fan3~5 and fan3L/H~fan5L/H  mapping xyz.openbmc_project.Hwmon.hwmon3 Bus
-        'EXT_FAN_INPUT_OBJ' : ['xyz.openbmc_project.Hwmon.hwmon3', 'xyz.openbmc_project.Sensor.Value'],
-        'EXT_FAN_OUTPUT_OBJ' : ['xyz.openbmc_project.Hwmon.hwmon3', 'xyz.openbmc_project.Sensor.Value'],
-        'OPEN_LOOP_GROUPS_1' :  ['xyz.openbmc_project.Hwmon.hwmon0', 'xyz.openbmc_project.Sensor.Value'],
-        'CLOSE_LOOP_GROUPS_1' :  ['occ-hwmon/occ1-dev0', 'xyz.openbmc_project.Sensor.Value'],
-        'EXT_CLOSE_LOOP_GROUPS_1' :  ['occ-hwmon/occ2-dev0', 'xyz.openbmc_project.Sensor.Value'],
-        'CLOSE_LOOP_GROUPS_2' :  ['occ-hwmon/occ1-dev0', 'xyz.openbmc_project.Sensor.Value'],
-        'EXT_CLOSE_LOOP_GROUPS_2' :  ['occ-hwmon/occ2-dev0', 'xyz.openbmc_project.Sensor.Value'],
+        'EXT_FAN_INPUT_OBJ' : ['i2c@1e78a000/i2c-bus@380/nct7904@2d', 'xyz.openbmc_project.Sensor.Value'],
+        'EXT_FAN_OUTPUT_OBJ' : ['i2c@1e78a000/i2c-bus@380/nct7904@2d', 'xyz.openbmc_project.Sensor.Value'],
+        'OPEN_LOOP_GROUPS_1' :  ['i2c@1e78a000/i2c-bus@40/lm75@4a', 'xyz.openbmc_project.Sensor.Value'],
+        'CLOSE_LOOP_GROUPS_1' :  ['sbefifo@2400/occ@1/occ-hwmon@1', 'xyz.openbmc_project.Sensor.Value'],
+        'EXT_CLOSE_LOOP_GROUPS_1' :  ['sbefifo@2400/occ@2/occ-hwmon@2', 'xyz.openbmc_project.Sensor.Value'],
+        'CLOSE_LOOP_GROUPS_2' :  ['sbefifo@2400/occ@1/occ-hwmon@1', 'xyz.openbmc_project.Sensor.Value'],
+        'EXT_CLOSE_LOOP_GROUPS_2' :  ['sbefifo@2400/occ@2/occ-hwmon@2', 'xyz.openbmc_project.Sensor.Value'],
+        'CLOSE_LOOP_GROUPS_3' :  ['i2c@1e78a000/i2c-bus@380/hdd@71', 'xyz.openbmc_project.Sensor.Value'],
     },
 
     'CHASSIS_POWER_STATE': ['/org/openbmc/control/chassis0'],

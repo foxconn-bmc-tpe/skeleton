@@ -27,6 +27,7 @@
 #define MAX_CLOSELOOP_RECORD (10)
 #define MAX_CLOSELOOP_SENSOR_NUM (8)
 #define MAX_CLOSELOOP_PROFILE_NUM (8)
+#define MAX_SENSOR_READING_RETRY (3)
 
 
 struct st_closeloop_obj_data {
@@ -50,8 +51,10 @@ struct st_fan_obj_path_info {
 	                                    //   pwm3~5 mapping xyz.openbmc_project.Hwmon.hwmon3 Bus
 	char ext_service_inf[MAX_PATH_LEN];
 	char path[MAX_SENSOR_NUM][MAX_PATH_LEN];
+	char sensor_service_bus[MAX_SENSOR_NUM][MAX_PATH_LEN];
 	int  sensor_number_list[MAX_SENSOR_NUM];
 	int  sensor_exist[MAX_SENSOR_NUM];
+	int  sesnor_reading_retry[MAX_SENSOR_NUM];
 	int size_sensor_list;
 	int size;
 	void *obj_data;
@@ -107,6 +110,12 @@ enum FAN_ALGO_TYPE {
 	EM_OPENLOOP
 };
 
+enum SENSOR_READING_STATUS {
+	EM_SENSOR_NOT_READY = 0,
+	EM_SENSOR_NO_NEED_CHECK = 1,
+	EM_SENSOR_DEPEND_MAIN_BUS = 2,
+	EM_SENSOR_DEPEND_EXTEND_BUS = 3
+};
 
 static struct st_fan_obj_path_info g_FanInputObjPath = {0};
 static struct st_fan_obj_path_info g_CloseloopG1_ObjPath = {0};
@@ -434,11 +443,11 @@ static int calculate_closeloop(struct st_closeloop_obj_data *sensor_data, double
 		g_Closeloopspeed = 100;
 		if (g_fan_para_shm->debug_msg_info_en == 1)
 			printf("%s, %d, upper Critical !!!! \n", __FUNCTION__, __LINE__);
-	} else if (sensor_data->sensor_reading>=sensor_data->warning_temp)
+	} else if (sensor_data->sensor_reading>=sensor_data->warning_temp) {
 		g_Closeloopspeed = 100;
 		if (g_fan_para_shm->debug_msg_info_en == 1)
 			printf("%s, %d, upper Warning !!!! \n", __FUNCTION__, __LINE__);
-	else {
+	} else {
 		g_trigger_system_event &=~(1<<((int)EM_CLOSELOOP));
 	}
 
@@ -528,7 +537,7 @@ static int get_sensor_reading(sd_bus *bus, char *obj_path, int *sensor_reading, 
 	return rc;
 }
 
-static int get_sensor_reading_with_bus(sd_bus *bus, char *obj_path, int *sensor_reading, struct st_fan_obj_path_info *fan_obj, char *service_bus, char *service_inf)
+static int get_sensor_reading_with_bus(sd_bus *bus, char *obj_path, int *sensor_reading, struct st_fan_obj_path_info *fan_obj, char *service_bus, char *service_inf, char *sensor_bus)
 {
 	sd_bus_error bus_error = SD_BUS_ERROR_NULL;
 	sd_bus_message *response = NULL;
@@ -539,8 +548,10 @@ static int get_sensor_reading_with_bus(sd_bus *bus, char *obj_path, int *sensor_
 
 	*sensor_reading = 0;
 
-
-	ptr_service_bus = service_bus;
+	if (sensor_bus != NULL && strlen(sensor_bus) > 0)
+		ptr_service_bus = sensor_bus;
+	else
+		ptr_service_bus = service_bus;
 retry_sensor_reading_with_bus:
 
 	if (ptr_service_bus == NULL || service_inf == NULL || strlen(ptr_service_bus) <= 0 || strlen(service_inf) <= 0 || strlen(obj_path) <= 0)
@@ -590,27 +601,34 @@ static int get_max_sensor_reading_with_bus(sd_bus *bus, struct st_fan_obj_path_i
 	int max_value = 0;
 
 	for(i=0; i<fan_obj->size; i++) {
-		if (fan_obj->sensor_exist[i] == 1)
+		if (fan_obj->sensor_exist[i] == EM_SENSOR_NO_NEED_CHECK)
 			continue;
 		rc = -1;
-		if (fan_obj->sensor_exist[i] ==2 || fan_obj->sensor_exist[i] == 0) {
-			rc = get_sensor_reading_with_bus(bus, fan_obj->path[i], &sensor_reading, fan_obj, fan_obj->service_bus, fan_obj->service_inf);
+		if (fan_obj->sensor_exist[i] == EM_SENSOR_DEPEND_MAIN_BUS || fan_obj->sensor_exist[i] == 0) {
+			rc = get_sensor_reading_with_bus(bus, fan_obj->path[i], &sensor_reading, fan_obj, fan_obj->service_bus, fan_obj->service_inf, fan_obj->sensor_service_bus[i]);
 			if (rc >= 0)
-				fan_obj->sensor_exist[i] = 2;
+				fan_obj->sensor_exist[i] = EM_SENSOR_DEPEND_MAIN_BUS;
 		}
-		if (fan_obj->sensor_exist[i] ==3 || fan_obj->sensor_exist[i] == 0) {
+		if (fan_obj->sensor_exist[i] == EM_SENSOR_DEPEND_EXTEND_BUS || fan_obj->sensor_exist[i] == 0) {
 			if (rc < 0 && strlen(fan_obj->ext_service_bus)>0 && strlen(fan_obj->ext_service_inf)>0) {
-				rc = get_sensor_reading_with_bus(bus, fan_obj->path[i], &sensor_reading, fan_obj, fan_obj->ext_service_bus, fan_obj->ext_service_inf);
+				rc = get_sensor_reading_with_bus(bus, fan_obj->path[i], &sensor_reading, fan_obj, fan_obj->ext_service_bus, fan_obj->ext_service_inf, NULL);
 				if (rc >=0)
-					fan_obj->sensor_exist[i] = 3;
+					fan_obj->sensor_exist[i] = EM_SENSOR_DEPEND_EXTEND_BUS;
 			}
 		}
 		if (rc >= 0)
 			max_value = (max_value < sensor_reading)? sensor_reading : max_value;
 		else {
-			if (strlen(fan_obj->service_bus)>0 && strlen(fan_obj->ext_service_bus)>0 && fan_obj->sensor_exist[i]==0) {
-				if(strncmp(fan_obj->service_bus, "occ-hwmon", strlen("occ-hwmon")) != 0 && strncmp(fan_obj->ext_service_bus, "occ-hwmon", strlen("occ-hwmon")) != 0)
-					fan_obj->sensor_exist[i] = 1;
+			if (strlen(fan_obj->service_bus)>0 && strlen(fan_obj->ext_service_bus)>0 && fan_obj->sensor_exist[i]==EM_SENSOR_NOT_READY) {
+				if(strncmp(fan_obj->service_bus, "xyz.openbmc_project.Hwmon", strlen("xyz.openbmc_project.Hwmon")) == 0 ||  \
+					strncmp(fan_obj->ext_service_bus, "xyz.openbmc_project.Hwmon", strlen("xyz.openbmc_project.Hwmon")) == 0) {
+					//it may need to spend a little time to be ready for sensor reading
+					if (fan_obj->sesnor_reading_retry[i] >= MAX_SENSOR_READING_RETRY) {
+						fan_obj->sensor_exist[i] = EM_SENSOR_NO_NEED_CHECK;
+						fan_obj->sesnor_reading_retry[i] = MAX_SENSOR_READING_RETRY;
+					}
+					fan_obj->sesnor_reading_retry[i]+=1;
+				}
 			}
 		}
 	}
@@ -816,7 +834,7 @@ static int fan_control_algorithm_monitor(void)
 				ptr_temp_fan_intf = g_FanSpeedObjPath.ext_service_inf;
 			}
 
-			rc = get_sensor_reading_with_bus(bus, g_FanSpeedObjPath.path[i], &temp_fanspeed, &g_FanSpeedObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf);
+			rc = get_sensor_reading_with_bus(bus, g_FanSpeedObjPath.path[i], &temp_fanspeed, &g_FanSpeedObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf, NULL);
 			if (rc >= 0)
 			{
 				current_fanspeed = current_fanspeed < temp_fanspeed? temp_fanspeed: current_fanspeed;
@@ -960,7 +978,7 @@ static int fan_control_algorithm_monitor(void)
 				ptr_temp_fan_bus = g_FanInputObjPath.ext_service_bus;
 				ptr_temp_fan_intf = g_FanInputObjPath.ext_service_inf;
 			}
-			rc = get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[fan_in_index], &Fan_tach, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf);
+			rc = get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[fan_in_index], &Fan_tach, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf, NULL);
 			if (rc < 0)
 				Fan_tach = 0;
 
@@ -1200,14 +1218,24 @@ static int initial_fan_config(sd_bus *bus)
 		prefix_closeloop[0] = 0;
 		sprintf(prefix_closeloop, "CLOSE_LOOP_GROUPS_%d", obj_count);
 		get_dbus_fan_parameters(bus, prefix_closeloop, &response_len, response_data);
-		if (response_len <= 2)
+		if (response_len == 0)
 			break;
 
 		t_fan_obj =(struct st_fan_obj_path_info *) malloc(sizeof(struct st_fan_obj_path_info));
 
-		t_fan_obj->size = response_len;
-		for (i = 0; i<response_len ; i++)
-			strcpy(t_fan_obj->path[i], response_data[i]);
+		t_fan_obj->size = 0;
+		i = 0;
+		while (i<response_len) {
+			if (strncmp(response_data[i], "Senosr BUS:", strlen("Senosr BUS:")) == 0) {
+				i = i+1;
+				if (t_fan_obj->size>0)
+					strcpy(t_fan_obj->sensor_service_bus[t_fan_obj->size-1], response_data[i]);
+			}
+			else
+				strcpy(t_fan_obj->path[t_fan_obj->size], response_data[i]);
+			i = i+1;
+			t_fan_obj->size+=1;
+		}
 
 		prefix_closeloop[0] = 0;
 		sprintf(prefix_closeloop, "FAN_DBUS_INTF_LOOKUP#CLOSE_LOOP_GROUPS_%d", obj_count);
@@ -1277,9 +1305,19 @@ static int initial_fan_config(sd_bus *bus)
 
 		t_fan_obj =(struct st_fan_obj_path_info *) malloc(sizeof(struct st_fan_obj_path_info));
 
-		t_fan_obj->size = response_len;
-		for (i = 0; i<response_len ; i++)
-			strcpy(t_fan_obj->path[i], response_data[i]);
+		t_fan_obj->size = 0;
+		i = 0;
+		while (i<response_len) {
+			if (strncmp(response_data[i], "Senosr BUS:", strlen("Senosr BUS:")) == 0) {
+				i = i+1;
+				if (t_fan_obj->size>0)
+					strcpy(t_fan_obj->sensor_service_bus[t_fan_obj->size-1], response_data[i]);
+			}
+			else
+				strcpy(t_fan_obj->path[t_fan_obj->size], response_data[i]);
+			i = i+1;
+			t_fan_obj->size+=1;
+		}
 
 		prefix_openloop[0] = 0;
 		sprintf(prefix_openloop, "FAN_DBUS_INTF_LOOKUP#OPEN_LOOP_GROUPS_%d", obj_count);
