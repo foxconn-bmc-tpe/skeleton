@@ -398,19 +398,19 @@ MISC_SENSORS = {
 #       - g_Kp
 #       - g_Ki
 #       - g_Kd
-#       - g_CPUVariable
-#       - g_DIMMVariable
 #       - sensor_tracking
 #       - highest warning temp
+#       - highest critical temp
+#       - sensor reading scale
 #   CLOSE_LOOP_GROUPS_1: set closeloop  group001 object path, eg: CPU0/CPU1
 #   CLOSE_LOOP_PARAM_2: set closeloop parameter
 #       - g_Kp
 #       - g_Ki
 #       - g_Kd
-#       - g_CPUVariable
-#       - g_DIMMVariable
 #       - sensor_tracking
 #       - highest warning temp
+#       - highest critical temp
+#       - sensor reading scale
 #   CLOSE_LOOP_GROUPS_2: set closeloop  group002 object path, eg: DIMM
 #   FAN_LED_OFF: set fan led command: off
 #   FAN_LED_PORT0_ALL_BLUE: set fan led port0 command: all blue
@@ -525,6 +525,24 @@ FAN_ALGORITHM_CONFIG = {
         [
             "Sensor_Group_List", #notify following 2 element, show path format and amount range
             "/xyz/openbmc_project/sensors/temperature/dimm%d_temp", [0, 31],
+        ],
+#Close Loop Profile#3: HDD thermal
+    'CLOSE_LOOP_PARAM_3' :
+        [
+            '0.16',
+            '-0.004',
+            '0.1',
+            '55',
+            '65',
+            '71',
+            '100',
+        ],
+    'CLOSE_LOOP_GROUPS_3':
+        [
+           "/xyz/openbmc_project/sensors/temperature/HDD_71_00_TEMP", "Senosr BUS:", "i2c@1e78a000/i2c-bus@380/hdd@71",
+           "/xyz/openbmc_project/sensors/temperature/HDD_72_00_TEMP", "Senosr BUS:", "i2c@1e78a000/i2c-bus@380/hdd@72",
+           "/xyz/openbmc_project/sensors/temperature/HDD_73_00_TEMP", "Senosr BUS:", "i2c@1e78a000/i2c-bus@380/hdd@73",
+           "/xyz/openbmc_project/sensors/temperature/HDD_74_00_TEMP", "Senosr BUS:", "i2c@1e78a000/i2c-bus@380/hdd@74",
         ],
 
     'FAN_LED_OFF': ["0xFF"],
