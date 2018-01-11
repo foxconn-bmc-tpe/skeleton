@@ -501,6 +501,7 @@ FAN_ALGORITHM_CONFIG = {
             '80',
             '85',
             '90',
+            '1000',
         ],
     'CLOSE_LOOP_GROUPS_1':
         [
@@ -518,6 +519,7 @@ FAN_ALGORITHM_CONFIG = {
             '80',
             '85',
             '90',
+            '1000',
         ],
     'CLOSE_LOOP_GROUPS_2':
         [

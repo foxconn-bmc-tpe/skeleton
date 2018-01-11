@@ -42,6 +42,7 @@ struct st_closeloop_obj_data {
 	double Ki;
 	double Kd;
 	int critical_temp;
+	int scale;
 };
 
 struct st_fan_obj_path_info {
@@ -868,8 +869,10 @@ static int fan_control_algorithm_monitor(void)
 
 			if (t_closeloop_data != NULL) {
 				t_closeloop_data->sensor_reading = get_max_sensor_reading_with_bus(bus, t_header);
+				if (t_closeloop_data->scale <=0)
+					t_closeloop_data->scale = 1;
 				if (t_closeloop_data->sensor_reading >= 0)
-					t_closeloop_data->sensor_reading = t_closeloop_data->sensor_reading / 1000;
+					t_closeloop_data->sensor_reading = t_closeloop_data->sensor_reading / t_closeloop_data->scale;
 				g_fan_para_shm->closeloop_param[t_closeloop_data->index].closeloop_sensor_reading = t_closeloop_data->sensor_reading;
 				check_change_closeloop_params(t_closeloop_data);
 				calculate_closeloop(t_closeloop_data, real_fanspeed, bus);
@@ -1271,6 +1274,7 @@ static int initial_fan_config(sd_bus *bus)
 			t_closeloop_data->sensor_tracking = atoi(response_data[3]);
 			t_closeloop_data->warning_temp = atoi(response_data[4]);
 			t_closeloop_data->critical_temp = atoi(response_data[5]);
+			t_closeloop_data->scale = atoi(response_data[6]);
 
 			g_fan_para_shm->closeloop_param[index].Kp = t_closeloop_data->Kp;
 			g_fan_para_shm->closeloop_param[index].Ki = t_closeloop_data->Ki;
