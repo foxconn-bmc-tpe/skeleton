@@ -169,8 +169,8 @@ static int PORT0_FAN_LED_RED_MASK = 0;
 static int PORT0_FAN_LED_BLUE_MASK = 0;
 static int PORT1_FAN_LED_RED_MASK = 0;
 static int PORT1_FAN_LED_BLUE_MASK = 0;
-static int g_fanled_speed_limit = 0;
-static int g_fanled_aux_speed_limit = 0;
+static int g_fanled_limit = 0;
+static int g_fanled_aux_limit = 0;
 static unsigned int g_trigger_system_event = 0;
 
 
@@ -768,14 +768,33 @@ static void check_change_openloop_params()
 	}
 }
 
+static void set_fan_led_as_red(int fan_tacho_index, int *fan_led_port0, int *fan_led_port1)
+{
+	int fan_mask = 0x0;
+	int offset = 0;
+
+	if (fan_tacho_index < 6) { //FAN Tacho1~FAN Tacho6
+		offset = (fan_tacho_index / 2)*2;
+		offset = 6 - offset;
+		fan_mask = 0x3<<offset;
+		*fan_led_port1 = *fan_led_port1 & ~(fan_mask);
+		*fan_led_port1 = *fan_led_port1 | (PORT1_FAN_LED_RED_MASK<<offset);
+	} else { //FAN Tacho7~FAN Tacho12
+		offset = ((fan_tacho_index-6) / 2)*2;
+		offset = offset + 2;
+		fan_mask = 0x3<<offset;
+		*fan_led_port0 = *fan_led_port0 & ~(fan_mask);
+		*fan_led_port0 = *fan_led_port0 | (PORT0_FAN_LED_RED_MASK<<offset);
+	}
+}
 
 static int fan_control_algorithm_monitor(void)
 {
 	sd_bus *bus = NULL;
 	sd_bus_error bus_error = SD_BUS_ERROR_NULL;
 	sd_bus_message *response = NULL;
-	int rc = 0, i = 0, offset = 0;
-	int Fan_tach, FinalFanSpeed = 255;
+	int rc = 0, i = 0;
+	int fan_tacho_rpm, FinalFanSpeed = 255;
 	int Power_state = 0, fan_led_port0 = 0xFF, fan_led_port1 = 0xFF;
 	char fan_presence[MAX_SENSOR_NUM] = {0}, fan_presence_previous[MAX_SENSOR_NUM] = {0};
 	struct st_fan_obj_path_info *t_header = NULL;
@@ -951,57 +970,29 @@ static int fan_control_algorithm_monitor(void)
 	    }
 		g_FanSpeed = real_fanspeed;
 
-		if (Power_state == 0) { //AUX condition
-			if (g_FanSpeed > g_fanled_aux_speed_limit) {
-				fan_led_port0 = FAN_LED_PORT0_ALL_BLUE;
-				fan_led_port1 = FAN_LED_PORT1_ALL_BLUE;
-			}
-			else {
-				fan_led_port0 = FAN_LED_PORT0_ALL_RED;
-				fan_led_port1 = FAN_LED_PORT1_ALL_RED;
-			}
-		} else if (Power_state == 1) { //Power on condition
-			if(g_FanSpeed > g_fanled_speed_limit) {
-				fan_led_port0 = FAN_LED_PORT0_ALL_BLUE;
-				fan_led_port1 = FAN_LED_PORT1_ALL_BLUE;
-			}
-			else {
-				fan_led_port0 = FAN_LED_PORT0_ALL_RED;
-				fan_led_port1 = FAN_LED_PORT1_ALL_RED;
-			}
-		}
-
-		int fan_in_index = 0;
-		int fan_mask = 0x0;
-		for(i=0, fan_in_index=0; fan_in_index<g_FanInputObjPath.size; i++, fan_in_index+=2) {
-			if (i<6) {
+		int fan_tacho_index = 0;
+		fan_led_port0 = FAN_LED_PORT0_ALL_BLUE;
+		fan_led_port1 = FAN_LED_PORT1_ALL_BLUE;
+		for(i=0, fan_tacho_index=0; i<g_FanInputObjPath.size; fan_tacho_index++, i+=2) {
+			if (fan_tacho_index < 6) {
 				ptr_temp_fan_bus = g_FanInputObjPath.service_bus;
 				ptr_temp_fan_intf = g_FanInputObjPath.service_inf;
 			} else {
 				ptr_temp_fan_bus = g_FanInputObjPath.ext_service_bus;
 				ptr_temp_fan_intf = g_FanInputObjPath.ext_service_inf;
 			}
-			rc = get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[fan_in_index], &Fan_tach, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf, NULL);
-			if (rc < 0)
-				Fan_tach = 0;
+			get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[i], &fan_tacho_rpm, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf);
+			if (fan_tacho_rpm > 0)
+				fan_presence[fan_tacho_index/2] = 1;
 
-			if (Fan_tach == 0) {
-				//FinalFanSpeed = 255;
-				if (i < 6) { //FAN1~FAN3
-					offset = (i / 2)*2;
-					offset = 6 - offset;
-					fan_mask = 0x3<<offset;
-					fan_led_port1 = fan_led_port1 & ~(fan_mask);
-					fan_led_port1 = fan_led_port1 | (PORT1_FAN_LED_RED_MASK<<offset);
-				} else { //FAN4~FAN6
-					offset = ((i-6) / 2)*2;
-					offset = offset + 2;
-					fan_mask = 0x3<<offset;
-					fan_led_port0 = fan_led_port0 & ~(fan_mask);
-					fan_led_port0 = fan_led_port0 | (PORT0_FAN_LED_RED_MASK<<offset);
+			if (Power_state == 0) { //AUX condition
+				if (fan_tacho_rpm <= g_fanled_aux_limit) {
+					set_fan_led_as_red(fan_tacho_index, &fan_led_port0, &fan_led_port1);
 				}
-			}else {
-				fan_presence[i/2] = 1;
+			} else if (Power_state == 1) { //Power on condition
+				if(fan_tacho_rpm <= g_fanled_limit) {
+					set_fan_led_as_red(fan_tacho_index, &fan_led_port0, &fan_led_port1);
+				}
 			}
 		}
 
@@ -1368,11 +1359,11 @@ static int initial_fan_config(sd_bus *bus)
 	get_dbus_fan_parameters(bus, "PORT1_FAN_LED_BLUE_MASK", &response_len, response_data);
 	PORT1_FAN_LED_BLUE_MASK = response_len > 0? strtoul(response_data[0], &p, 16): PORT1_FAN_LED_BLUE_MASK;
 
-	get_dbus_fan_parameters(bus, "FAN_LED_SPEED_LIMIT", &response_len, response_data);
-	g_fanled_speed_limit = response_len > 0? atoi(response_data[0]): g_fanled_speed_limit;
+	get_dbus_fan_parameters(bus, "FAN_LED_LIMIT", &response_len, response_data);
+	g_fanled_limit = response_len > 0? atoi(response_data[0]): g_fanled_limit;
 
-	get_dbus_fan_parameters(bus, "FAN_LED_AUX_SPEED_LIMIT", &response_len, response_data);
-	g_fanled_aux_speed_limit = response_len > 0? atoi(response_data[0]): g_fanled_speed_limit;
+	get_dbus_fan_parameters(bus, "FAN_LED_AUX_LIMIT", &response_len, response_data);
+	g_fanled_aux_limit = response_len > 0? atoi(response_data[0]): g_fanled_aux_limit;
 
 	get_dbus_fan_parameters(bus, "FAN_LED_I2C_BUS", &response_len, response_data);
 	if (response_len > 0)

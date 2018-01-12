@@ -555,8 +555,8 @@ FAN_ALGORITHM_CONFIG = {
     'PORT1_FAN_LED_RED_MASK': ["0x02"],
     'PORT1_FAN_LED_BLUE_MASK': ["0x01"],
     
-    'FAN_LED_SPEED_LIMIT': ["30"],
-    'FAN_LED_AUX_SPEED_LIMIT': ["10"],
+    'FAN_LED_LIMIT': ["7300"],
+    'FAN_LED_AUX_LIMIT': ["4900"],
 
     'FAN_LED_I2C_BUS': ["/dev/i2c-9"],
     'FAN_LED_I2C_SLAVE_ADDRESS': [0x20],
