@@ -28,6 +28,7 @@
 #define MAX_CLOSELOOP_SENSOR_NUM (8)
 #define MAX_CLOSELOOP_PROFILE_NUM (8)
 #define MAX_SENSOR_READING_RETRY (3)
+#define FAN_PWM_MULTIPLIER (1.5)
 
 
 struct st_closeloop_obj_data {
@@ -863,6 +864,8 @@ static int fan_control_algorithm_monitor(void)
 	int current_fanspeed = 0;
 	int first_time_set = 0;
 	char *ptr_temp_fan_bus = NULL, *ptr_temp_fan_intf= NULL;
+	uint8_t fan_failure_counter = 0;
+	char fan_failure[MAX_SENSOR_NUM] = {0};
 
 	double real_fanspeed = 0.0;
 	do {
@@ -878,6 +881,7 @@ static int fan_control_algorithm_monitor(void)
 	initial_fan_config(bus);
 
 	while (1) {
+		fan_failure_counter = 0;
 		rc = sd_bus_call_method(bus,
 					g_PowerObjPath.service_bus,
 					g_PowerObjPath.path[0],
@@ -1048,15 +1052,42 @@ static int fan_control_algorithm_monitor(void)
 			if (Power_state == 0) { //AUX condition
 				if (fan_tacho_rpm <= g_fanled_aux_limit) {
 					set_fan_led_as_red(fan_tacho_index, &fan_led_port0, &fan_led_port1);
+					fan_failure[fan_tacho_index] = 1;
+				} else {
+					fan_failure[fan_tacho_index] = 0;
 				}
 			} else if (Power_state == 1) { //Power on condition
 				if(fan_tacho_rpm <= g_fanled_limit) {
 					set_fan_led_as_red(fan_tacho_index, &fan_led_port0, &fan_led_port1);
+					fan_failure[fan_tacho_index] = 1;
+				} else {
+					fan_failure[fan_tacho_index] = 0;
 				}
 			}
 			/* Using fan_failure to determine if fan tacho is lower then threshold */
 			add_fan_rpm_event(bus, fan_tacho_index, fan_failure[fan_tacho_index]);
 		}
+
+		/*
+		One or more fan rpm failure will count as one failure for each FAN
+		Number of fan will be half of g_FanModuleObjPath size
+		*/
+		for(fan_tacho_index = 0; fan_tacho_index < g_FanInputObjPath.size/2; fan_tacho_index += 2)
+			if (fan_failure[fan_tacho_index] == 1 || fan_failure[fan_tacho_index+1] == 1)
+				fan_failure_counter += 1;
+
+
+		/*
+		Only 1 FAN failure will multiply the 255 value by 1.5
+		Two or more FAN failure will set PWM as 255
+		*/
+		if (fan_failure_counter > 1)
+			FinalFanSpeed = 255;
+		else if (fan_failure_counter > 0)
+			FinalFanSpeed *= FAN_PWM_MULTIPLIER;
+
+		if (FinalFanSpeed > 255)
+			FinalFanSpeed = 255;
 
 		set_fanled(fan_led_port0,fan_led_port1);
 
