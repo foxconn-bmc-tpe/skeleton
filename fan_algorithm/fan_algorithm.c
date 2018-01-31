@@ -768,20 +768,39 @@ static void check_change_openloop_params()
 	}
 }
 
+/*
+	With i2c bus = 9 and slave address = 0x20, i2c data address is 0x02 for fan_led_port0 setting, 
+and is 0x03 for fan_led_port1 setting.
+	Bit value of i2c datat address:0x2 means following for fan_led_port0 setting:
+		Bit0|Bit1: FAN3 LED setting, b"01:red, b"10:blue
+		Bit2|Bit3: FAN4 LED setting, b"01:red, b"10:blue
+		Bit4|Bit5: FAN5 LED setting, b"01:red, b"10:blue
+		Bit6|Bit7: FAN6 LED setting, b"01:red, b"10:blue
+	Bit value of i2c datat address:0x3 means following for fan_led_port1 setting:
+		Bit4|Bit5: FAN2 LED setting, b"10:red, b"01:blue
+		Bit6|Bit7: FAN1 LED setting, b"10:red, b"01:blue
+*/
 static void set_fan_led_as_red(int fan_tacho_index, int *fan_led_port0, int *fan_led_port1)
 {
 	int fan_mask = 0x0;
 	int offset = 0;
 
-	if (fan_tacho_index < 6) { //FAN Tacho1~FAN Tacho6
+	if (fan_tacho_index < 4) {
+		//FAN Tacho[0]~FAN Tacho[3] for FAN1 LED & FAN2 LED control
+		//  -- FAN1 LED map: FAN Tacho[0] & FAN Tacho[1]
+		//  -- FAN2 LED map: FAN Tacho[2] & FAN Tacho[3]
 		offset = (fan_tacho_index / 2)*2;
 		offset = 6 - offset;
 		fan_mask = 0x3<<offset;
 		*fan_led_port1 = *fan_led_port1 & ~(fan_mask);
 		*fan_led_port1 = *fan_led_port1 | (PORT1_FAN_LED_RED_MASK<<offset);
-	} else { //FAN Tacho7~FAN Tacho12
-		offset = ((fan_tacho_index-6) / 2)*2;
-		offset = offset + 2;
+	} else {
+		//FAN Tacho[4]~FAN Tacho[11] for FAN3 LED & FAN4 LED & FAN5 LED & FAN6 LED control
+		//  -- FAN3 LED map: FAN Tacho[4] & FAN Tacho[5]
+		//  -- FAN4 LED map: FAN Tacho[6] & FAN Tacho[7]
+		//  -- FAN5 LED map: FAN Tacho[8] & FAN Tacho[9]
+		//  -- FAN6 LED map: FAN Tacho[10] & FAN Tacho[11]
+		offset = ((fan_tacho_index-4) / 2)*2;
 		fan_mask = 0x3<<offset;
 		*fan_led_port0 = *fan_led_port0 & ~(fan_mask);
 		*fan_led_port0 = *fan_led_port0 | (PORT0_FAN_LED_RED_MASK<<offset);
@@ -981,7 +1000,7 @@ static int fan_control_algorithm_monitor(void)
 				ptr_temp_fan_bus = g_FanInputObjPath.ext_service_bus;
 				ptr_temp_fan_intf = g_FanInputObjPath.ext_service_inf;
 			}
-			get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[i], &fan_tacho_rpm, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf);
+			get_sensor_reading_with_bus(bus, g_FanInputObjPath.path[i], &fan_tacho_rpm, &g_FanInputObjPath, ptr_temp_fan_bus, ptr_temp_fan_intf, NULL);
 			if (fan_tacho_rpm > 0)
 				fan_presence[fan_tacho_index/2] = 1;
 
