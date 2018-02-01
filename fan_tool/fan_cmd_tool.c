@@ -51,7 +51,7 @@ struct st_fan_parameter {
 	int g_LowSpeed;
 	int g_HighSpeed;
 	int openloop_speed;
-	double openloop_sensor_reading;
+	int openloop_sensor_reading;
 	int openloop_sensor_offset;
 	int openloop_warning_upper;
 	int openloop_critical_upper;
@@ -305,14 +305,14 @@ main(int argc, char * const argv[])
 		{
 			closeloop = &(g_fan_para_shm->closeloop_param[i]);
 			print_datetime();
-			printf("Closeloop Info %d, sensor_reading,%d, kp,%f, Ki,%f, Kd,%f, target,%d, pid_value,%f, closeloop speed,%f, current fan speed,%f , total_error,%d, current_error,%d , last_error:%d \n",
+			printf("Closeloop Info %d, sensor_reading, %d, kp, %f, Ki, %f, Kd, %f, target, %d, pid_value, %f, closeloop speed, %f, current fan speed, %f, total_error, %d, current_error, %d, last_error, %d\n",
 					i, closeloop->closeloop_sensor_reading, closeloop->Kp, closeloop->Ki, closeloop->Kd,closeloop->sensor_tracking,
 					closeloop->pid_value, closeloop->closeloop_speed,
 					closeloop->current_fanspeed, closeloop->total_integral_error, closeloop->cur_integral_error, closeloop->last_integral_error);
 
 		}
 		print_datetime();
-		printf("Openloop Info, sensor_reading,%f , sensor_reading_offset,%d , a,%f ,b,%f ,c,%f ,LowAmb,%d ,UpAmb,%d ,LowSpeed,%d ,HighSpeed,%d ,openloop speed,%d\n",
+		printf("Openloop Info, sensor_reading, %d, sensor_reading_offset, %d, a, %f, b, %f, c, %f ,LowAmb, %d, UpAmb, %d ,LowSpeed, %d, HighSpeed, %d, openloop speed, %d\n",
 		       g_fan_para_shm->openloop_sensor_reading, g_fan_para_shm->openloop_sensor_offset,
 		       g_fan_para_shm->g_ParamA, g_fan_para_shm->g_ParamB, g_fan_para_shm->g_ParamC,
 		       g_fan_para_shm->g_LowAmb, g_fan_para_shm->g_UpAmb,  g_fan_para_shm->g_LowSpeed, g_fan_para_shm->g_HighSpeed,

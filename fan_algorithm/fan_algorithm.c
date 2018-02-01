@@ -95,7 +95,7 @@ struct st_fan_parameter {
 	int g_LowSpeed;
 	int g_HighSpeed;
 	int openloop_speed;
-	double openloop_sensor_reading;
+	int openloop_sensor_reading;
 	int openloop_sensor_offset;
 	int openloop_warning_upper;
 	int openloop_critical_upper;
@@ -497,7 +497,7 @@ static int calculate_closeloop(struct st_closeloop_obj_data *sensor_data, double
 	return 1;
 }
 
-static int calculate_openloop (double sensorreading, sd_bus *bus)
+static int calculate_openloop (int sensorreading, sd_bus *bus)
 {
 	int speed = 0;
 
@@ -866,6 +866,7 @@ static int fan_control_algorithm_monitor(void)
 	char *ptr_temp_fan_bus = NULL, *ptr_temp_fan_intf= NULL;
 	uint8_t fan_failure_counter = 0;
 	char fan_failure[MAX_SENSOR_NUM] = {0};
+	int t_reading;
 
 	double real_fanspeed = 0.0;
 	do {
@@ -998,9 +999,8 @@ static int fan_control_algorithm_monitor(void)
 		t_header = g_Openloop_Header;
 		g_Openloopspeed = 0;
 		while (t_header != NULL) {
-			double t_reading;
-			t_reading = (double) get_max_sensor_reading_with_bus(bus, t_header);
-			t_reading = t_reading>=0? (double) t_reading/1000 : t_reading;
+			t_reading = get_max_sensor_reading_with_bus(bus, t_header);
+			t_reading = t_reading >= 0 ? t_reading/1000 : t_reading;
 			g_fan_para_shm->openloop_sensor_reading = t_reading;
 			calculate_openloop(t_reading, bus);
 			openloop_reading = (openloop_reading<t_reading? t_reading:openloop_reading);
