@@ -172,6 +172,7 @@ static int PORT1_FAN_LED_BLUE_MASK = 0;
 static int g_fanled_limit = 0;
 static int g_fanled_aux_limit = 0;
 static unsigned int g_trigger_system_event = 0;
+static unsigned int g_fan_event_bitmap = 0;
 
 
 //Fan LED I2C bus
@@ -230,6 +231,46 @@ static int i2c_open(int bus)
 		return -1;
 	}
 	return fd;
+}
+
+static void add_fan_rpm_event(sd_bus *bus, int fan_number, int assertion)
+{
+	int rc;
+	char msg[255] = {0};
+	sd_bus_error bus_error = SD_BUS_ERROR_NULL;
+	sd_bus_message *response = NULL;
+
+	// check if this fan triggered event
+	if (assertion == 0) {
+		if (!(g_fan_event_bitmap & (0x1 << fan_number)))
+			return;
+		sprintf(msg, "Fan_%d RPM returns normal\n", fan_number);
+	} else {
+		if (g_fan_event_bitmap & (0x1 << fan_number))
+			return;
+		sprintf(msg, "Fan_%d RPM too low\n", fan_number);
+	}
+
+	rc = sd_bus_call_method(bus,
+			"xyz.openbmc_project.Logging",
+			"/xyz/openbmc_project/logging/internal/manager",
+			"xyz.openbmc_project.Logging.Internal.Manager",
+			"Commit",
+			&bus_error,
+			&response,
+			"ts",
+			(unsigned long long) 0, msg);
+	if(rc < 0) {
+		if (g_fan_para_shm->debug_msg_info_en == 1)
+			fprintf(stderr, "add_system_event_fan_failure  ERROR: %s!!!!\n",  bus_error.message);
+	} else {
+		if (assertion == 0)
+			g_fan_event_bitmap &= ~(0x1 << fan_number);
+		else
+			g_fan_event_bitmap |= (0x1 << fan_number);
+	}
+	sd_bus_error_free(&bus_error);
+	response = sd_bus_message_unref(response);
 }
 
 static void add_system_event_thermal_shutdown(sd_bus *bus, enum FAN_ALGO_TYPE fan_algo_type)
@@ -1013,6 +1054,8 @@ static int fan_control_algorithm_monitor(void)
 					set_fan_led_as_red(fan_tacho_index, &fan_led_port0, &fan_led_port1);
 				}
 			}
+			/* Using fan_failure to determine if fan tacho is lower then threshold */
+			add_fan_rpm_event(bus, fan_tacho_index, fan_failure[fan_tacho_index]);
 		}
 
 		set_fanled(fan_led_port0,fan_led_port1);
