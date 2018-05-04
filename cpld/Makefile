@@ -1,6 +1,6 @@
 BINS=cpld
 EXTRA_OBJS+=ast-jtag.o \
-            lettice.o
+            lattice.o
 
 #ALL_CFLAGS+=-Ipflash
 include ../gdbus.mk
