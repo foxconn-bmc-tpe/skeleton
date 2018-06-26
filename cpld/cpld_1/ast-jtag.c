@@ -21,27 +21,22 @@ int jtag_fd;
 int ast_jtag_open(void)
 {
 	jtag_fd = open("/dev/ast-jtag", O_RDWR);
-	printf("willen LIB ast_jtag_open\n");
 	if(jtag_fd == -1) {
 		perror("Can't open /dev/ast-jtag, please install driver!! \n");
 		return -1;
 	}	
-	printf("willen LIB ast_jtag_open done\n");
 	return 0;
 }
 
 void ast_jtag_close(void)
 {
-	printf("willen LIB ast_jtag_close\n");
 	close(jtag_fd);
-	printf("willen LIB ast_jtag_close done\n");
 }
 
 unsigned int ast_get_jtag_freq(void)
 {
 	int retval;
 	unsigned int freq = 0;
-	printf("willen LIB ast_get_jtag_freq\n");
 
 	retval = ioctl(jtag_fd, AST_JTAG_GIOCFREQ, &freq);
 	if (retval == -1) {
@@ -49,7 +44,6 @@ unsigned int ast_get_jtag_freq(void)
 		return 0;
 	}
 	
-	printf("willen LIB ast_get_jtag_freq done\n");
 	return freq;
 }
 
@@ -57,14 +51,12 @@ int ast_set_jtag_freq(unsigned int freq)
 {
 	int retval;
 
-	printf("willen LIB ast_set_jtag_freq\n");
 	retval = ioctl(jtag_fd, AST_JTAG_SIOCFREQ, freq);
 	if (retval == -1) {
 		perror("ioctl JTAG run reset fail!\n");
 		return -1;
 	}
 	
-	printf("willen LIB ast_set_jtag_freq done\n");
 	return 0;
 }
 
@@ -74,7 +66,6 @@ int ast_jtag_run_test_idle(unsigned char reset, unsigned char end, unsigned char
 	int retval;
 	struct runtest_idle run_idle;
 
-	printf("willen LIB ast_jtag_run_test_idle\n");
 	run_idle.mode = mode;
 	run_idle.end = end;
 	run_idle.reset = reset;
@@ -89,7 +80,6 @@ int ast_jtag_run_test_idle(unsigned char reset, unsigned char end, unsigned char
 //	if(end)
 //		usleep(3000);
 
-	printf("willen LIB ast_jtag_run_test_idle done\n");
 	return 0;
 }
 
@@ -98,7 +88,6 @@ unsigned int ast_jtag_sir_xfer(unsigned char endir, unsigned int len, unsigned i
 	int 	retval;
 	struct sir_xfer	sir;
 
-	printf("willen LIB ast_jtag_sir_xfer\n");
 	if(len > 32)
 		return -1;
 	
@@ -115,7 +104,6 @@ unsigned int ast_jtag_sir_xfer(unsigned char endir, unsigned int len, unsigned i
 //	if(endir)
 //		usleep(3000);
 	
-	printf("willen LIB ast_jtag_sir_xfer done\n");
 	return sir.tdo;
 }
 
@@ -124,7 +112,6 @@ int ast_jtag_tdi_xfer(unsigned char enddr, unsigned int len, unsigned int *tdio)
 	int retval;
 	struct sdr_xfer sdr;
 
-	printf("willen LIB ast_jtag_tdi_xfer\n");
 	sdr.mode = mode;
 
 	sdr.direct = 1;
@@ -141,7 +128,6 @@ int ast_jtag_tdi_xfer(unsigned char enddr, unsigned int len, unsigned int *tdio)
 //	if(enddr)
 //		usleep(3000);
 	
-	printf("willen LIB ast_jtag_tdi_xfer done\n");
 	return 0;
 }
 
@@ -151,7 +137,6 @@ int ast_jtag_tdo_xfer(unsigned char enddr, unsigned int len, unsigned int *tdio)
 
 	struct sdr_xfer sdr;
 
-	printf("willen LIB ast_jtag_tdo_xfer\n");
 	sdr.mode = mode;
 
 	sdr.direct = 0;
@@ -168,7 +153,6 @@ int ast_jtag_tdo_xfer(unsigned char enddr, unsigned int len, unsigned int *tdio)
 //	if(enddr)
 //		usleep(3000);
 
-	printf("willen LIB ast_jtag_tdo_xfer done\n");
 	return 0;
 }
 
