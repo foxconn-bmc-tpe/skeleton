@@ -34,7 +34,7 @@ usage(FILE *fp, int argc, char **argv)
 		" -v | --verify                 verifiy cpld image with file\n"
 		" -r | --read                   Read cpld image to file\n"
 		" -d | --debug                  debug mode\n"		
-		" -f | --frequency                  frequency\n"		
+		" -f | --frequency              frequency\n"		
 		" -s | --software               sw mode\n"				
 		"",
 		argv[0]);
@@ -79,7 +79,7 @@ int lattice_get_id(unsigned int *id)
 
 	ast_jtag_tdo_xfer(0, 32, id);
 
-//	printf("get id : %x \n", *id);
+	printf("get id : %x \n", *id);
 	return 0;
 }
 
@@ -197,14 +197,14 @@ int main(int argc, char *argv[])
 	if(debug) printf(", debug mode \n");
 	else printf("\n");
 	
-	ast_jtag_run_test_idle( 1, 0, 0);
+//	ast_jtag_run_test_idle( 1, 0, 0);
 
 #if 1
-#if 0
+//#if 0
 	lattice_get_id(&dev_id);
 #else
 	lattice_get_id_pub(&dev_id);
-#endif
+//#endif
 #endif
 //	dev_id = 0x012B5043;
 
