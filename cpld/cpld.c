@@ -46,15 +46,15 @@ static const char short_options [] = "dshiep:v:r:f:";
 
 static const struct option
 long_options [] = {
-        { "help",       	no_argument,            	NULL,   	'h' },
-        { "idle",       	no_argument,            	NULL,   	'i' },
+        { "help",       no_argument,            	NULL,   	'h' },
+        { "idle",       no_argument,            	NULL,   	'i' },
         { "erase",	no_argument,            	NULL,   	'e' },        
         { "program",	required_argument,      	NULL,   	'p' },
-        { "verify",     	required_argument,      	NULL,   	'v' },
-        { "read",       	required_argument,      	NULL,   	'r' },
-        { "debug",      	no_argument,            	NULL,   	'd' },
+        { "verify",     required_argument,      	NULL,   	'v' },
+        { "read",       required_argument,      	NULL,   	'r' },
+        { "debug",      no_argument,            	NULL,   	'd' },
         { "software",   no_argument,            	NULL,   	's' },        
-	{ "fequency",	required_argument,		NULL,	'f' },
+	{ "fequency",	required_argument,		NULL,		'f' },
         { 0, 0, 0, 0 }
 };
 
@@ -79,7 +79,7 @@ int lattice_get_id(unsigned int *id)
 
 	ast_jtag_tdo_xfer(0, 32, id);
 
-	printf("get id : %x \n", *id);
+	printf("willen get iid : %x \n", *id);
 	return 0;
 }
 
@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
 	unsigned int dev_id;
 
 	while((option=getopt_long(argc, argv, short_options, long_options, NULL))!=(char)-1){
-//		printf("option is c %c\n", option);
+		printf("willen option is c %c\n", option);
 		switch(option){
 			case 'h':
 				usage(stdout, argc, argv);
-				exit(EXIT_SUCCESS);
+				//exit(EXIT_SUCCESS);
 				break;
 			case 'i':
 				gidle = 1;
