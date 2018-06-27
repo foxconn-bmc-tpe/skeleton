@@ -114,10 +114,10 @@ int main(int argc, char *argv[])
 	unsigned int dev_id;
 
 	while((option=getopt_long(argc, argv, short_options, long_options, NULL))!=(char)-1){
-		printf("willen option is c %c\n", option);
+		printf("willen option is %c\n", option);
 		switch(option){
 			case 'h':
-				usage(stdout, argc, argv);
+				//usage(stdout, argc, argv);
 				//exit(EXIT_SUCCESS);
 				break;
 			case 'i':
@@ -176,9 +176,14 @@ int main(int argc, char *argv[])
 //	system("echo out > /sys/class/gpio/gpio104/direction");
 //	system("echo 0 > /sys/class/gpio/gpio104/value");
 /////////////////////////////////////////////////////////////////////
+	
+	printf("willen cpld ast_jtag_open start\n");
 	if(ast_jtag_open())
+	{
 		exit(1);
-
+	}
+	
+	printf("willen cpld ast_jtag_open done\n");
 	//show current ast jtag configuration 
 	jtag_freq = ast_get_jtag_freq();
 	
