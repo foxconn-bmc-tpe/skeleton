@@ -27,7 +27,9 @@ unsigned int jed_file_paser_header(FILE *jed_fd)
 	unsigned char input_char, input_bit;	
 	int sdr_array = 0, data_bit = 0, bit_cnt = 0;
 	int cmp_err = 0;
-
+	
+	printf("willen jed_file_paser_header\n");
+	
 	//Header paser
 	while(fgets(tmp_buf, 120, jed_fd)!= NULL) {
 		if(debug) printf("%s \n",tmp_buf);
