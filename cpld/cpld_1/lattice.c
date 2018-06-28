@@ -45,7 +45,8 @@ unsigned int jed_file_paser(FILE *jed_fd, unsigned int len, unsigned int *dr_dat
 	unsigned char input_char, input_bit;	
 	int sdr_array = 0, data_bit = 0, bit_cnt = 0;
 	int cmp_err = 0;
-
+	
+	printf("willen jed_file_paser\n");
 	//Jed row 
 	for(i = 0; i < len; i++) {
 		input_char = fgetc(jed_fd);
@@ -99,7 +100,8 @@ int lc4064v_xxt4_cpld_program(FILE *jed_fd)
 	unsigned char input_char, input_bit;	
 	int sdr_array = 0, data_bit = 0, bit_cnt = 0;
 	int cmp_err = 0;
-
+	
+	printf("willen lc4064v_xxt4_cpld_program\n");
 	//! Enable the programming mode
 	//! Shift in ISC ENABLE(0x15) instruction
 	ast_jtag_sir_xfer(0, LATTICE_INS_LENGTH, ISC_ENABLE);
@@ -261,6 +263,7 @@ int lc4064v_xxt4_cpld_verify(FILE *jed_fd)
 	int sdr_array = 0, data_bit = 0, bit_cnt = 0;
 	int cmp_err = 0;
 
+	printf("willen lc406v_xxt4_cpld_verify\n");
 	sir.mode = mode;
 	sir.endir = 0;
 	sdr.mode = mode;
@@ -417,6 +420,7 @@ int lcmxo2280c_cpld_program(FILE *jed_fd)
 	unsigned int row  = 0;
 	int cmp_err = 0;
 
+	printf("willen lcmxo2280c_cpld_program\n");
 	dr_data = malloc(((544/32) + 1) * sizeof(unsigned int));
 	jed_data = malloc(((cur_dev->dr_bits/32) + 1) * sizeof(unsigned int));
 
