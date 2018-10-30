@@ -101,7 +101,7 @@ static int internal_gpu_access(int bus, __u8 slave,__u8 *write_buf, __u8 *read_b
 	char filename[MAX_I2C_DEV_LEN] = {0};
 	int rc=-1;
 	int retry_gpu = 5;
-	unsigned char cmd_reg[4];
+	unsigned char cmd_reg[32];
 
 	memset(cmd_reg, 0x0, sizeof(cmd_reg));
 	sprintf(filename,"/dev/i2c-%d",bus);
@@ -157,7 +157,7 @@ static int function_get_gpu_info(int index)
 //		{TYPE_FIRMWARE_VERSION,14},
 		{0xFF,0xFF}, //List of end
 	};
-	unsigned char temp_readbuf[MAX_INFO_INDEX][32];
+	unsigned char temp_readbuf[MAX_INFO_INDEX][64];
 	unsigned char read_times = 0;
 	unsigned char read_times_count = 0;
 	unsigned char cuurent_index=0;
@@ -217,7 +217,7 @@ int function_get_gpu_data(int index)
 
 	unsigned char temp_writebuf[4] = {NV_CMD_GET_TEMP,0x0,0x0,0x80};
 	unsigned char temp_mem_writebuf[4] = {NV_CMD_GET_TEMP,0x5,0x0,0x80};
-	unsigned char readbuf[4];
+	unsigned char readbuf[32];
 	int rc=0;
 	char gpu_path[128];
 	char sys_cmd[128];
