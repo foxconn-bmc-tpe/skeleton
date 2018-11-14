@@ -24,7 +24,7 @@ void pmbus_scan()
     int bus;
     int rc = 0;
     int res;
-
+    sleep(60);
     while(1) {
         for(i=0;i<PMBUS_NUMBER;i++) {
             /* Init pmbus node */
